@@ -20,7 +20,7 @@ struct header *get_header(const char *buffer, size_t size) {
         exit(1);
     }
     struct header *header = malloc(sizeof(struct header));
-    header->id = (uint16_t) (buffer[0] << 8) | buffer[1];
+    header->id = (uint16_t) ((uint16_t)buffer[0] << 8) | buffer[1];
     header->qr = (uint8_t) ((buffer[2] & 0x80) >> 7);
     header->opcode = (uint8_t) ((buffer[2] & 0x78) >> 3);
     header->aa = (uint8_t) ((buffer[2] & 0x4) >> 2);
@@ -42,7 +42,7 @@ struct header *get_header(const char *buffer, size_t size) {
  */
 void print_header(struct header *header) {
     printf("DNS Headers: {\n"
-           "  id: %d,\n"
+           "  id: %u,\n"
            "  qr: %d,\n"
            "  opcode: %d,\n"
            "  aa: %d,\n"
@@ -51,10 +51,10 @@ void print_header(struct header *header) {
            "  ra: %d,\n"
            "  z: %d,\n"
            "  rcode: %d,\n"
-           "  qdcount: %d,\n"
-           "  ancount: %d,\n"
-           "  nscount: %d,\n"
-           "  arcount: %d\n"
+           "  qdcount: %u,\n"
+           "  ancount: %u,\n"
+           "  nscount: %u,\n"
+           "  arcount: %u\n"
            "}\n",
            header->id, header->qr,
            header->opcode, header->aa, header->tc, header->rd, header->ra, header->z, header->rcode, header->qdcount,

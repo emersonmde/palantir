@@ -72,9 +72,9 @@ int start_server() {
         printf("datagram too large for buffer: truncated");
     } else {
         struct message *message = get_message(&src_addr, buffer, count);
-        printf("Message received.\n");
+        printf("Message received.\n\n");
         send_reply(&src_addr, message, fd);
-        printf("Reply sent.\n");
+        printf("Reply sent.\n\n");
         free_message(message);
     }
 
@@ -189,36 +189,45 @@ void send_reply(struct sockaddr_storage *src_addr, struct message *message, int 
         printf("failed to resolve remote socket address (err=%d)", err);
     }
 
-    uint8_t reply[30];
-    memset(reply, 0, 30);
-    reply[0] = (uint8_t) (message->header->id >> 8 & 0xFF);
-    reply[1] = (uint8_t) (message->header->id & 0xFF);
-    reply[3] = (uint8_t) 0x03;
+#define REPLY_MESSAGE_SIZE 38
+    uint8_t reply[REPLY_MESSAGE_SIZE];
+    memset(reply, 0, sizeof(reply));
+    reply[0] = (uint8_t) (message->header->id >> 8 & 0xFF);  // high id
+    reply[1] = (uint8_t) (message->header->id & 0xFF);  // low id
+    reply[2] = 0x81;  // qr set (reply), opcode 0 (query), rd set (recursion desired)
+    reply[3] = (uint8_t) 0x80;  // ra set (recurision available), rcode of 3
     reply[7] = 1;  // ancount low byte, 1 answer
 
     // Encoded the same way qnames are, need to check if this is valid
     // Each segment contains a length and terminates in a null byte
     // <Length(6)>google<Length(3)>com<null(0)> = google.com.
     char name[] = {0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00};
-    memcpy(reply + DNS_HEADER_SIZE + 1, name, sizeof(name));
+    memcpy(reply + DNS_HEADER_SIZE, name, sizeof(name));
     size_t offset = DNS_HEADER_SIZE + sizeof(name);
     reply[offset + 1] = 1; // Low byte of type, 1 = A record
     reply[offset + 3] = 1;  // Low byte of class, 1 = IN internet
     reply[offset + 7] = 0;  // Low byte of TTL, time in seconds, 0 means no caching
-    reply[9] = 4;  // Low byte of rdlength, length in octets of the rdata field
+    reply[offset + 9] = 4;  // Low byte of rdlength, length in octets of the rdata field
     // reply[10] rdata, for IN A records, 32 bit Internet Address
-    reply[10] = 0x8E;
-    reply[11] = 0xFB;
-    reply[12] = 0x10;
-    reply[13] = 0x66;
+    reply[offset + 10] = 0x8E;
+    reply[offset + 11] = 0xFB;
+    reply[offset + 12] = 0x10;
+    reply[offset + 13] = 0x66;
+
 
     ssize_t result = sendto(fd, reply, sizeof(reply), 0, res->ai_addr, res->ai_addrlen);
-    printf("\nResult %zd, sizeof(reply): %lu\n", result, sizeof(reply));
+    printf("Sent %zd of %lu bytes\n", result, sizeof(reply));
     if (result == -1) {
         printf("%s", strerror(errno));
         exit(1);
     }
 
+
+    printf("Reply bytes:\n");
+    for (int i = 0; i < REPLY_MESSAGE_SIZE; i++) {
+        printf("%02X ", reply[i]);
+    }
+    printf("\n\n");
 
 }
 

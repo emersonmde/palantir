@@ -80,6 +80,32 @@ DNS Resource: {
   rdlength: 0
   rdata: 0
 Message received.
+
+Sent 38 of 38 bytes
+Reply bytes:
+04 16 81 80 00 00 00 01 00 00 00 00 06 67 6F 6F 67 6C 65 03 63 6F 6D 00 00 01 00 01 00 00 00 00 00 04 8E FB 10 66 
+
+Reply sent.
+```
+
+Dig will show the hard coded reply that was automatically sent
+```shell
+ $ dig @localhost google.com
+
+; <<>> DiG 9.10.6 <<>> @localhost google.com
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63324
+;; flags: qr rd ra; QUERY: 0, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; ANSWER SECTION:
+google.com.		0	IN	A	142.251.16.102
+
+;; Query time: 9 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Wed Jul 27 11:00:49 EDT 2022
+;; MSG SIZE  rcvd: 38
 ```
 
 
@@ -88,5 +114,6 @@ Message received.
 - Add address lookup table
 - Persist lookup table
 - Customize response after finding record
+- Clean up bitwise operations
 - Handle errors (unknown domain)
 - Query authoritative NS for DNS queries
