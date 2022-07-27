@@ -7,6 +7,13 @@
 #include <string.h>
 #include "dns.h"
 
+/**
+ * Extracts (deserializes) DNS header from buffer
+ *
+ * @param buffer UDP DNS message
+ * @param size of buffer
+ * @return pointer to heap allocated header
+ */
 struct header *get_header(const char *buffer, size_t size) {
     if (size < DNS_HEADER_SIZE) {
         printf("Error: malformed header\n");
@@ -29,6 +36,10 @@ struct header *get_header(const char *buffer, size_t size) {
     return header;
 }
 
+/**
+ * Print DNS header
+ * @param header
+ */
 void print_header(struct header *header) {
     printf("DNS Headers: {\n"
            "  id: %d,\n"
@@ -50,6 +61,13 @@ void print_header(struct header *header) {
            header->ancount, header->nscount, header->arcount);
 }
 
+/**
+ * Extracts (deserializes) DNS question from a buffer
+ *
+ * @param buffer UDP DNS message
+ * @param size of buffer
+ * @return pointer to heap allocated question
+ */
 struct question *get_question(const char *buffer, size_t size) {
     if (size < 11) {
         printf("Error: malformed question\n");
@@ -64,6 +82,20 @@ struct question *get_question(const char *buffer, size_t size) {
     return question;
 }
 
+/**
+ * Decodes the qname field
+ *
+ * Each segment starts with a byte containing the length of
+ * the segment. Immediately following the segment text is another
+ * length value or null indicating the end of the name.
+ *
+ * For example:
+ * \x06google\x03com\x00 = google.com.
+ *
+ * @param qname question name
+ * @param len length of qname
+ * @return heap allocated name
+ */
 char *get_name(const char *qname, size_t len) {
     char *out = malloc(len + 1);
     size_t out_offset = 0;
@@ -82,6 +114,10 @@ char *get_name(const char *qname, size_t len) {
     return out;
 }
 
+/**
+ * Prints a DNS question record
+ * @param question
+ */
 void print_question(struct question *question) {
     char *name = get_name(question->qname, question->qname_len);
     printf("DNS Question: {\n"
@@ -93,6 +129,16 @@ void print_question(struct question *question) {
     free(name);
 }
 
+/**
+ * Extracts (deserializes) DNS resource record from a buffer
+ *
+ * DNS Resource Records (RR) are used for answer, authority, and
+ * additional record sections for all DNS messages.
+ *
+ * @param buffer UDP DNS message
+ * @param size of buffer
+ * @return pointer to heap allocated question
+ */
 struct resource *get_resource(const char *buffer, size_t size) {
     if (size < 11) {
         printf("Error: malformed resource\n");
@@ -116,6 +162,11 @@ struct resource *get_resource(const char *buffer, size_t size) {
     return resource;
 }
 
+/**
+ * Print a resource record
+ *
+ * @param resource
+ */
 void print_resource(struct resource *resource) {
     printf("DNS Resource: {\n"
            "  name: ");
@@ -132,6 +183,12 @@ void print_resource(struct resource *resource) {
            resource->ttl, resource->rdlength, resource->rdata);
 }
 
+/**
+ * Convert int class to string representation
+ *
+ * @param class DNS class
+ * @return string representation of the DNS class
+ */
 char *get_class(uint16_t class) {
     switch (class) {
         case 1:
@@ -149,6 +206,12 @@ char *get_class(uint16_t class) {
     }
 }
 
+/**
+ * Convert int type to string representation
+ *
+ * @param class DNS type
+ * @return string representation of the DNS type
+ */
 char *get_type(uint16_t type) {
     switch (type) {
         case 1:

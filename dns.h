@@ -13,6 +13,7 @@
 
 /**
  * DNS Header
+ * @see https://datatracker.ietf.org/doc/html/rfc1035
  *
  *                                     1  1  1  1  1  1
  *       0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
@@ -50,6 +51,7 @@ struct header {
 
 /**
  * DNS question section
+ * @see https://datatracker.ietf.org/doc/html/rfc1035
  *                                     1  1  1  1  1  1
  *       0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
  *     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -76,6 +78,8 @@ struct question {
 
 /**
  * DNS resource record used by answer, authority, and additional sections.
+ * @see https://datatracker.ietf.org/doc/html/rfc1035
+ *
  *                                     1  1  1  1  1  1
  *       0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
  *     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -112,6 +116,7 @@ struct resource {
 
 /**
  * DNS message
+ * @see https://datatracker.ietf.org/doc/html/rfc1035
  *
  *     +---------------------+
  *     |        Header       |
