@@ -20,7 +20,8 @@ struct header *get_header(const char *buffer, size_t size) {
         exit(1);
     }
     struct header *header = malloc(sizeof(struct header));
-    header->id = (uint16_t) ((uint16_t)buffer[0] << 8) | buffer[1];
+    memset(header, 0, size);
+    header->id = (uint16_t) (((uint16_t) buffer[0] & 0xFF) << 8) | ((uint16_t) buffer[1] & 0xFF);
     header->qr = (uint8_t) ((buffer[2] & 0x80) >> 7);
     header->opcode = (uint8_t) ((buffer[2] & 0x78) >> 3);
     header->aa = (uint8_t) ((buffer[2] & 0x4) >> 2);

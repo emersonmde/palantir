@@ -111,6 +111,8 @@ google.com.		0	IN	A	142.251.16.102
 
 ## TODO
 
+- Add debug flag
+- Fix memory allocation
 - Add address lookup table
 - Persist lookup table
 - Customize response after finding record

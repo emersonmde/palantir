@@ -12,25 +12,23 @@
 #define MAX_AUTHORITIES_RECORDS 10
 
 
-int start_server();
+int run_server();
 
 
 struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssize_t count);
 void free_message(struct message *message);
-void print_datagram(char *buf, ssize_t count);
-
 void send_reply(struct sockaddr_storage *src_addr, struct message *message, int fd);
 
 
 int main() {
-    return start_server();
+    return run_server();
 }
 
 /**
  * Make it so
  * @return
  */
-int start_server() {
+int run_server() {
     const char *hostname = 0;
     const char *portname = "domain";
     struct addrinfo hints;
@@ -42,19 +40,19 @@ int start_server() {
     struct addrinfo *res = 0;
     int err = getaddrinfo(hostname, portname, &hints, &res);
     if (err != 0) {
-        printf("failed to resolve local socket address (err=%d)", err);
-        exit(err);
+        fprintf(stderr, "Failed to resolve local socket address: %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (fd == -1) {
-        printf("%s", strerror(errno));
-        exit(errno);
+        fprintf(stderr, "Failed to create socket: %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     if (bind(fd, res->ai_addr, res->ai_addrlen) == -1) {
-        printf("%s", strerror(errno));
-        exit(errno);
+        fprintf(stderr, "Failed to bind scoket: %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
     freeaddrinfo(res);
 
@@ -64,21 +62,30 @@ int start_server() {
     char buffer[DNS_MAX_UDP_SIZE];
     struct sockaddr_storage src_addr;
     socklen_t src_addr_len = sizeof(src_addr);
-    ssize_t count = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr *) &src_addr, &src_addr_len);
-    if (count == -1) {
-        printf("%s", strerror(errno));
-        exit(errno);
-    } else if (count == sizeof(buffer)) {
-        printf("datagram too large for buffer: truncated");
-    } else {
-        struct message *message = get_message(&src_addr, buffer, count);
-        printf("Message received.\n\n");
-        send_reply(&src_addr, message, fd);
-        printf("Reply sent.\n\n");
-        free_message(message);
+    while(1) {
+        memset(buffer, 0, sizeof(buffer));
+        memset((void *)&src_addr, 0, src_addr_len);
+        ssize_t count = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr *) &src_addr, &src_addr_len);
+        if (count == -1) {
+            fprintf(stderr, "Failed to receive data: %s", strerror(errno));
+            exit(EXIT_FAILURE);
+        } else if (count == sizeof(buffer)) {
+            fprintf(stderr, "datagram too large for buffer, rejecting");
+        } else {
+            printf("\nReceived Message:\n");
+            for (ssize_t i = 0; i < count; i++) {
+                printf("%02X ", (char) buffer[i]);
+            }
+            printf("\n\n");
+            struct message *message = get_message(&src_addr, buffer, count);
+            printf("Message received.\n\n");
+            send_reply(&src_addr, message, fd);
+            printf("Reply sent.\n\n");
+            free_message(message);
+        }
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
@@ -100,14 +107,14 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
     struct header *header = get_header(buffer, count);
     offset += DNS_HEADER_SIZE;
     message->header = header;
-    print_header(header);
+//    print_header(header);
 
     struct question **questions = malloc(sizeof(struct question *) * MAX_QUESTIONS);
     for (int i = 0; i < message->header->qdcount && i < MAX_QUESTIONS; i++) {
         struct question *question = get_question(buffer + offset, count - offset);
         questions[i] = question;
         offset += question->qname_len + 4;
-        print_question(question);
+//        print_question(question);
     }
     message->questions = questions;
 
@@ -117,7 +124,7 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
         struct resource *answer = get_resource(buffer + DNS_HEADER_SIZE + DNS_QUESTION_SIZE, count - offset);
         answers[i] = answer;
         offset += DNS_RESOURCE_SIZE;
-        print_resource(answer);
+//        print_resource(answer);
     }
     message->answers = answers;
 
@@ -127,7 +134,7 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
         struct resource *answer = get_resource(buffer + offset, count - offset);
         answers[i] = answer;
         offset += DNS_RESOURCE_SIZE;
-        print_resource(answer);
+//        print_resource(answer);
     }
     message->authorities = authorities;
 
@@ -137,7 +144,7 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
         struct resource *additional = get_resource(buffer + offset, count - offset);
         additionals[i] = additional;
         offset += DNS_RESOURCE_SIZE;
-        print_resource(additional);
+//        print_resource(additional);
     }
     message->additionals = additionals;
 
