@@ -107,14 +107,14 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
     struct header *header = get_header(buffer, count);
     offset += DNS_HEADER_SIZE;
     message->header = header;
-//    print_header(header);
+    print_header(header);
 
     struct question **questions = malloc(sizeof(struct question *) * MAX_QUESTIONS);
     for (int i = 0; i < message->header->qdcount && i < MAX_QUESTIONS; i++) {
         struct question *question = get_question(buffer + offset, count - offset);
         questions[i] = question;
         offset += question->qname_len + 4;
-//        print_question(question);
+        print_question(question);
     }
     message->questions = questions;
 
@@ -123,18 +123,18 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
     for (int i = 0; i < message->header->ancount && i < MAX_ANSWERS_RECORDS; i++) {
         struct resource *answer = get_resource(buffer + DNS_HEADER_SIZE + DNS_QUESTION_SIZE, count - offset);
         answers[i] = answer;
-        offset += DNS_RESOURCE_SIZE;
-//        print_resource(answer);
+        offset += answer->name_len + answer->rdlength + 10;
+        print_resource(answer);
     }
     message->answers = answers;
 
 
     struct resource **authorities = malloc(sizeof(struct resource *) * MAX_AUTHORITIES_RECORDS);
     for (int i = 0; i < message->header->nscount && i < MAX_AUTHORITIES_RECORDS; i++) {
-        struct resource *answer = get_resource(buffer + offset, count - offset);
-        answers[i] = answer;
-        offset += DNS_RESOURCE_SIZE;
-//        print_resource(answer);
+        struct resource *authority = get_resource(buffer + offset, count - offset);
+        answers[i] = authority;
+        offset += authority->name_len + authority->rdlength + 10;
+        print_resource(authority);
     }
     message->authorities = authorities;
 
@@ -143,8 +143,8 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
     for (int i = 0; i < message->header->arcount && i < MAX_ADDITIONAL_RECORDS; i++) {
         struct resource *additional = get_resource(buffer + offset, count - offset);
         additionals[i] = additional;
-        offset += DNS_RESOURCE_SIZE;
-//        print_resource(additional);
+        offset += additionals[i]->name_len + additionals[i]->rdlength + 10;
+        print_resource(additionals[i]);
     }
     message->additionals = additionals;
 
@@ -156,19 +156,31 @@ struct message *get_message(struct sockaddr_storage *src_addr, char *buffer, ssi
  * @param message DNS message
  */
 void free_message(struct message *message) {
-    for (int i = 0; i < (*message).header->arcount && i < MAX_ANSWERS_RECORDS; i++) {
-        free((*message).additionals[i]);
+    int arcount = message->header->arcount;
+    int nscount = message->header->nscount;
+    int ancount = message->header->ancount;
+    int qdcount = message->header->qdcount;
+    for (int i = 0; i < qdcount && i < MAX_QUESTIONS; i++) {
+        free(message->questions[i]->qname);
+        free(message->questions[i]);
     }
-    for (int i = 0; i < (*message).header->nscount && i < MAX_ANSWERS_RECORDS; i++) {
-        free((*message).authorities[i]);
+    free(message->questions);
+    for (int i = 0; i < ancount && i < MAX_ANSWERS_RECORDS; i++) {
+        free(message->answers[i]->rdata);
+        free(message->answers[i]);
     }
-    for (int i = 0; i < (*message).header->ancount && i < MAX_ANSWERS_RECORDS; i++) {
-        free((*message).answers[i]);
+    free(message->answers);
+    for (int i = 0; i < arcount && i < MAX_ANSWERS_RECORDS; i++) {
+        free(message->additionals[i]->rdata);
+        free(message->additionals[i]);
     }
-    for (int i = 0; i < (*message).header->qdcount && i < MAX_QUESTIONS; i++) {
-        free((*message).questions[i]);
+    free(message->additionals);
+    for (int i = 0; i < nscount && i < MAX_ANSWERS_RECORDS; i++) {
+        free(message->authorities[i]->rdata);
+        free(message->authorities[i]);
     }
-    free((*message).header);
+    free(message->authorities);
+    free(message->header);
     free(message);
 }
 

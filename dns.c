@@ -21,19 +21,20 @@ struct header *get_header(const char *buffer, size_t size) {
     }
     struct header *header = malloc(sizeof(struct header));
     memset(header, 0, size);
-    header->id = (uint16_t) (((uint16_t) buffer[0] & 0xFF) << 8) | ((uint16_t) buffer[1] & 0xFF);
-    header->qr = (uint8_t) ((buffer[2] & 0x80) >> 7);
-    header->opcode = (uint8_t) ((buffer[2] & 0x78) >> 3);
-    header->aa = (uint8_t) ((buffer[2] & 0x4) >> 2);
-    header->tc = (uint8_t) ((buffer[2] & 0x2) >> 1);
-    header->rd = (uint8_t) (buffer[2] & 0x1);
-    header->ra = (uint8_t) ((buffer[3] & 0x80) >> 7);
-    header->z = (uint8_t) ((buffer[3] & 0x70) >> 4);
-    header->rcode = (uint8_t) (buffer[3] & 0xF);
-    header->qdcount = (uint16_t) (buffer[4] << 8) | buffer[5];
-    header->ancount = (uint16_t) (buffer[6] << 8) | buffer[7];
-    header->nscount = (uint16_t) (buffer[8] << 8) | buffer[9];
-    header->arcount = (uint16_t) (buffer[10] << 8) | buffer[11];
+
+    header->id = htons(*(uint16_t *) buffer);
+    header->qr = ((uint8_t) buffer[2] & 0x80) >> 7;
+    header->opcode =  ((uint8_t) buffer[2] & 0x78) >> 3;
+    header->aa = ((uint8_t) buffer[2] & 0x4) >> 2;
+    header->tc = ((uint8_t) buffer[2] & 0x2) >> 1;
+    header->rd = (uint8_t) buffer[2] & 0x1;
+    header->ra = ((uint8_t) buffer[3] & 0x80) >> 7;
+    header->z = ((uint8_t) buffer[3] & 0x70) >> 4;
+    header->rcode = (uint8_t) buffer[3] & 0xF;
+    header->qdcount = htons(*(uint16_t *) (buffer + 4));
+    header->ancount = htons(*(uint16_t *) (buffer + 6));
+    header->nscount = htons(*(uint16_t *) (buffer + 8));
+    header->arcount = htons(*(uint16_t *) (buffer + 10));
     return header;
 }
 
@@ -75,11 +76,14 @@ struct question *get_question(const char *buffer, size_t size) {
 //        exit(1);
     }
     struct question *question = malloc(sizeof(struct question));
-    question->qname = buffer;
+//    question->qname = buffer;
     size_t qname_len = strlen(buffer) + 1;
+    question->qname = malloc(qname_len);
+    memset(question->qname, 0, qname_len);
+    memcpy(question->qname, buffer, qname_len);
     question->qname_len = qname_len;
-    question->qtype = (uint16_t) (buffer[qname_len] << 8) | buffer[qname_len + 1];
-    question->qclass = (uint16_t) (buffer[qname_len + 2] << 8) | buffer[qname_len + 3];
+    question->qtype = htons(*(uint16_t *) (buffer + qname_len));
+    question->qclass = htons(*(uint16_t *) (buffer + qname_len + 2));
     return question;
 }
 
@@ -98,7 +102,7 @@ struct question *get_question(const char *buffer, size_t size) {
  * @return heap allocated name
  */
 char *get_name(const char *qname, size_t len) {
-    char *out = malloc(len + 1);
+    char *out = malloc(len + 2);
     size_t out_offset = 0;
     uint8_t remaining = (uint8_t) qname[0];
     size_t qname_offset = 1;
@@ -143,23 +147,23 @@ void print_question(struct question *question) {
 struct resource *get_resource(const char *buffer, size_t size) {
     if (size < 11) {
         printf("Error: malformed resource\n");
-//        exit(1);
+        exit(1);
     }
     struct resource *resource = malloc(sizeof(struct resource));
     resource->name = buffer;
     size_t name_len = strlen(buffer) + 1;
     resource->name_len = name_len;
-    resource->type = (uint16_t) (buffer[name_len] << 8) | buffer[name_len + 1];
-    resource->class = (uint16_t) (buffer[name_len + 2] << 8) | buffer[name_len + 3];
-    for (int i = 0; i < 4; i++) {
-        resource->ttl |= buffer[name_len + i + 4];
-        resource->ttl <<= 8;
+    resource->type = htons(*(uint16_t *) buffer + name_len);
+    resource->class = htons(*(uint16_t *) buffer + name_len + 2);
+    resource->ttl = htonl(*(uint32_t *) buffer + name_len + 4);
+    resource->rdlength = htons(*(uint16_t *) buffer + name_len + 8);
+    if (resource->rdlength < 8) {
+        fprintf(stderr, "rdata too large, over 8 bytes");
+        exit(EXIT_FAILURE);
     }
-    resource->rdlength = (uint16_t) (buffer[name_len + 8] << 8) | buffer[name_len + 9];
-    for (int i = 0; i < resource->rdlength && i < 4; i++) {
-        resource->rdata |= buffer[name_len + i + 10];
-        resource->rdata <<= 8;
-    }
+    resource->rdata = malloc(resource->rdlength);
+    memset(resource->rdata, 0, resource->rdlength);
+    memcpy(resource->rdata, buffer + name_len + 10, resource->rdlength);
     return resource;
 }
 

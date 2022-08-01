@@ -65,7 +65,7 @@ struct header {
  *     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
  */
 struct question {
-    const char *qname;  // 48 bits QUESTION_QNAME_SIZE
+    char *qname;  // 48 bits QUESTION_QNAME_SIZE
     size_t qname_len;
     uint16_t qtype;
     uint16_t qclass;
@@ -108,7 +108,7 @@ struct resource {
     uint16_t class;
     uint32_t ttl;
     uint16_t rdlength;
-    uint32_t rdata;
+    char *rdata;
 };
 
 #define DNS_RESOURCE_SIZE 22

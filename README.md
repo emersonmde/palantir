@@ -111,11 +111,9 @@ google.com.		0	IN	A	142.251.16.102
 
 ## TODO
 
-- Add debug flag
 - Fix memory allocation
 - Add address lookup table
 - Persist lookup table
 - Customize response after finding record
-- Clean up bitwise operations
 - Handle errors (unknown domain)
 - Query authoritative NS for DNS queries
